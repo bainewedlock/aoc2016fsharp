@@ -1,0 +1,16 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>netcoreapp3.1</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup />
+
+  <ItemGroup>
+    <Content Include="input\input-23.txt" />
+    <None Include="input.fsx" />
+    <None Include="day-13.fsx" />
+  </ItemGroup>
+
+</Project>
