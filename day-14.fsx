@@ -1,12 +1,13 @@
 ﻿open System.Security.Cryptography
 open System.Text
+open System
 
-let salt = "ahsbgdzn"
 let enco = Encoding.ASCII
 let md5 = MD5.Create()
 
 [<Measure>] type Index
 [<Measure>] type Byte
+type HashFunc = int<Index> -> byte[]
 
 type Repo = Map<int<Byte>, int<Index> Set>
 
@@ -24,14 +25,18 @@ let rec addMany index bytes (repo: Repo) =
   | []     -> repo
   | x::xs  -> addMany index xs (addSingle index x repo)
 
-let rec grow max cache =
+let singleMd5 (salt: string) (x: int<Index>) = 
+  sprintf "%s%d" salt x
+  |> enco.GetBytes
+  |> md5.ComputeHash
+
+let rec grow (fHash: HashFunc) max cache =
   match cache.ubound + 1<Index> with
   | x when x > max -> cache
   | x ->
   let (_,_,n3,n5) =
-    sprintf "%s%d" salt x
-    |> enco.GetBytes
-    |> md5.ComputeHash
+    x
+    |> fHash
     |> Array.toSeq
     |> Seq.collect (fun b -> seq { int b / 16; int b % 16 } )
     |> Seq.cast<int<Byte>>
@@ -51,10 +56,10 @@ let rec grow max cache =
     match n5 |> Set.toList with
     | []  -> cache.n5s
     | n5s -> cache.n5s |> addMany x n5s
-  grow max { cache with n3s = n3s'; n5s = n5s'; ubound = x }
+  grow fHash max { cache with n3s = n3s'; n5s = n5s'; ubound = x }
 
-let rec calc cache x = seq {
-  let cache' = cache |> grow (x + 1000<Index>)
+let rec calc (fHash: HashFunc) cache x = seq {
+  let cache' = cache |> grow fHash (x + 1000<Index>)
   match cache'.n3s |> Seq.tryFind (fun k -> k.Value.Contains(x)) with
   | None   -> ()
   | Some r ->
@@ -68,10 +73,37 @@ let rec calc cache x = seq {
       match matches |> Seq.isEmpty with
       | false -> yield x
       | true  -> ()
-  yield! calc cache' (x + 1<Index>)
+  yield! calc fHash cache' (x + 1<Index>)
 }
 
+#time
 let answer =
-  calc (Cache.create) 0<Index>
+  calc (singleMd5 "ahsbgdzn") (Cache.create) 0<Index>
   |> Seq.take 64
   |> Seq.last
+#time
+
+let byteMap = dict [
+  for b in {0..255} do
+    let s = Convert.ToString(b, 16).PadLeft(2, '0')
+    ( byte b, enco.GetBytes(s) )
+  ]
+
+let convertBytes (bytes: byte[]) =
+  bytes |> Array.collect (fun b -> byteMap.Item(b))
+
+let stretch (salt: string) (x: int<Index>) =
+  let rec loop n (b: byte[]) =
+    if n = 0 then b else
+    loop (n-1) (b |> convertBytes |> md5.ComputeHash)
+  loop 2016 (singleMd5 salt x)
+
+
+#time
+let answer' =
+  calc (stretch "ahsbgdzn") (Cache.create) 0<Index>
+  |> Seq.take 64
+  |> Seq.last
+#time
+//Real: 00:02:26.347, CPU: 00:02:26.078, GC gen0: 22286, gen1: 16, gen2: 2
+//val answer' : int<Index> = 22696
