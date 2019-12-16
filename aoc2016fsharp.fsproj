@@ -5,9 +5,8 @@
     <TargetFramework>netcoreapp3.1</TargetFramework>
   </PropertyGroup>
 
-  <ItemGroup />
-
   <ItemGroup>
+    <None Include="day-14.fsx" />
     <Content Include="input\input-23.txt" />
     <None Include="input.fsx" />
     <None Include="day-13.fsx" />
