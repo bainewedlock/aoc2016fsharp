@@ -33,9 +33,11 @@ let answer =
   |> List.map string
   |> List.reduce (+)
 
+#time
 let answer' = 
   solve "01110110101001000" 35651584
   |> checksum
   |> List.map string
   |> List.reduce (+)
+#time
 
